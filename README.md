@@ -31,6 +31,7 @@ Running Code in GSWORD
 --------
 Running code is also done within the Root/ directory. 
 Use "./build/gsword -d DataGraph -q QueryGraph -m method -s NumberOfQueryVetice" to estimate the count of QueryGraph in DataGraph.
+
 | Method | code |Description|
 |------|------|------|
 |WJ|0|the WanderJoin RW Estimator|
