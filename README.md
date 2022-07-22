@@ -82,10 +82,10 @@ e 3 4
 User-defined APIs
 --------
 
-**int Refine(Sample* s, int d, Vertex* cand, int clen,Vertex* refine)** : Given a sample s with sample iteration d, a candidate array cand with length clen, it fills a refined candidate array refine and returns the length of refine.
+__int Refine(Sample* s, int d, Vertex* cand, int clen,Vertex* refine)__ : Given a sample s with sample iteration d, a candidate array cand with length clen, it fills a refined candidate array refine and returns the length of refine.
 
-**pair<Vertex, double> Sample(Sample* s, int d, Vertex* refine, int rlen)** : Given a sample s with sample iteration d, a refined candidate array refine with length rlen, it samples a vertex v from refine. v is returned with its sampling probability/weight.
+__pair<Vertex, double> Sample(Sample* s, int d, Vertex* refine, int rlen)__ : Given a sample s with sample iteration d, a refined candidate array refine with length rlen, it samples a vertex v from refine. v is returned with its sampling probability/weight.
 
-**bool Validate(Sample* s, int d, Vertex v, double prob)** :Given a sample s with sample iteration d, if s remains valid after adding v as the dth vertex, the function returns true and updates the sampling probability of s given prob, the probability of sampling v. Otherwise, it returns false to indict invalid sample.
+__bool Validate(Sample* s, int d, Vertex v, double prob)__ :Given a sample s with sample iteration d, if s remains valid after adding v as the dth vertex, the function returns true and updates the sampling probability of s given prob, the probability of sampling v. Otherwise, it returns false to indict invalid sample.
 
 you can overwrite those APIs in file Root/header/kernel.cuh.
