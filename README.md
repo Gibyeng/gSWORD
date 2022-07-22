@@ -52,7 +52,7 @@ We also provide mpre advanced arguments for experienced users.
 |RI|6|the ordering method of RI|
 |VF2|7|the ordering method of VF2++|
 
-If you want to implement your own version of LP.
+If you want to implement your own RW estimators.
 Please overwrite following APIs provide by us.
 
 Examples
@@ -90,4 +90,4 @@ __pair<Vertex, double> Sample(Sample* s, int d, Vertex* refine, int rlen)__ : Gi
 
 __bool Validate(Sample* s, int d, Vertex v, double prob)__ :Given a sample s with sample iteration d, if s remains valid after adding v as the dth vertex, the function returns true and updates the sampling probability of s given prob, the probability of sampling v. Otherwise, it returns false to indict invalid sample.
 
-you can overwrite those APIs in file Root/APIs.cu.
+you can overwrite those APIs in file Root/kernel/APIs.cu.

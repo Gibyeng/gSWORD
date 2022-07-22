@@ -9112,4 +9112,188 @@ __global__  void ggecoal2 (ui root,ui* d_offset_index,ui* d_offsets,ui* d_edge_i
 	 }
 }
 
+template < ui threadsPerBlock>
+__global__  void userDefine(ui root,ui* d_offset_index,ui* d_offsets,ui* d_edge_index,ui* d_edges ,ui* d_order,ui* d_candidates,ui* d_candidates_count, ui* d_bn ,ui* d_bn_count, ui* d_idx_count,  ui* d_idx, ui* d_range, ui* d_embedding, ui* d_idx_embedding, ui* d_temp, ui* d_intersection,ui query_vertices_num ,ui max_candidates_num,ui threadnum,ui sl, ui el, ui fixednum, double* d_score,ui* d_score_count, ui taskPerBlock){
 
+	__shared__ unsigned int s;
+	__shared__ unsigned int d;
+	double thread_score = 0.0;
+	ui tid = blockIdx.x * blockDim.x + threadIdx.x;
+	ui offset_qn = tid* query_vertices_num;
+	ui offset_cn = tid* max_candidates_num;
+	s = 0;
+//	d = 0;
+	//
+
+	while(s < taskPerBlock){
+		// reset to 1st layer
+		ui depth = sl;
+		ui u = root;
+		ui divergence = 1;
+
+		if (tid < threadnum){
+			atomicAdd (&s, 1);
+//			atomicAdd (&d, 1);
+			if(s >= taskPerBlock) {
+				break;
+			}
+			// each thread gets a v.
+			ui v =0;
+			ui valid_idx = PickOneRandomCandidate ( d_candidates, d_candidates_count[u], max_candidates_num, u, tid, v);
+
+			bool if_end = false;
+			bool if_interrupt = false;
+			while (true) {
+
+				ui valid_candidate_size = d_candidates_count[u];
+				if(depth != sl){
+					valid_candidate_size = d_idx_count[ offset_qn+ depth];
+				}
+				ui min_size = min (valid_candidate_size,fixednum);
+
+
+//				printf("depth:%d, d_idx %d, min %d \n",  depth, d_idx[depth + offset_qn],min_size);
+				u = d_order[depth];
+				d_range[depth + offset_qn]  = valid_candidate_size;
+
+				// if depth is not beginning depth.
+				if(depth != sl){
+					valid_idx = d_temp[fixednum* query_vertices_num* tid  + depth* fixednum ];
+
+					v = d_candidates[max_candidates_num*u + valid_idx];
+				}
+				if_end = false;
+				if_interrupt = false;
+				if(valid_candidate_size == 0 ){
+					if_interrupt = true;
+
+
+				}
+
+				if( v== 100000000){
+					if_interrupt = true;
+
+				}
+
+				if(duplicate_test(d_embedding,v, depth,d_order ,offset_qn)){
+					if_interrupt = true;
+
+				}
+
+				if_end = if_interrupt || (depth ==  el) ;
+
+				d_embedding[offset_qn + u] = v;
+				d_idx_embedding[offset_qn + u] = valid_idx;
+
+				auto notEndingMask = __ballot_sync(__activemask(), !if_end);
+				//check number of existing threads
+				auto totalCnt =  __popc(__activemask());
+				auto notEndingCnt = __popc(notEndingMask);
+				//pick one unfinsihed thread
+				//Find the lowest-numbered active lane
+				int elected_lane = -1;
+				//collect info when elected_lane is active
+				auto old_diver =0;
+				auto elected_thread = -1;
+				auto old_depth =  0;
+
+				if(notEndingCnt > 0 ){
+					elected_lane = __ffs(notEndingMask) - 1;
+					old_diver = __shfl( divergence, elected_lane);
+					elected_thread = __shfl(tid, elected_lane);
+					old_depth =  __shfl(depth, elected_lane);
+//					printf("depth : %d, old_depth: %d, tid %d,elected_thread %d  \n",depth, old_depth,tid, elected_thread );
+//					if(elected_lane != 0 )
+//					printf("elected_lane %d elected_thread %d \n", elected_lane, elected_thread);
+				}
+				//go to threads that will reach the end, so elected_thread is not active any more
+				bool if_help = false;
+				if(if_end){
+
+
+					if (depth == el && !if_interrupt) {
+
+						//compute score
+						double score = 1;
+						for (int i =sl ; i <= el; ++i){
+
+							if(d_range[i + offset_qn] > fixednum){
+								score *= (double)d_range[i + offset_qn]/fixednum;
+
+							}
+						}
+						if(divergence > 0 )
+						thread_score += score / divergence;
+
+					}
+
+
+					if(notEndingCnt > 0 && s < taskPerBlock){
+					//this control the sample count method.
+					//	atomicAdd (&s, 1);
+					//	atomicAdd (&d, 1);
+//						if(s < taskPerBlock){
+							if_help = true;
+							// count threads that can be used
+							ui end_count = __popc(__activemask());
+							// get divergence of main
+							// to sub thread that join main thread
+							divergence = old_diver* (end_count + 1);
+							// help elected lane
+							// get depth from elected lane
+
+							depth = old_depth;
+							//copy d_range, d_embedding, d_idx_embedding
+							ui t_offset_qn = elected_thread* query_vertices_num;
+							for (int i =sl ; i <= depth; ++i){
+								d_range[i + offset_qn] = d_range[i + t_offset_qn];
+								d_embedding[offset_qn + d_order[i]] = d_embedding[t_offset_qn + d_order[i]];
+								d_idx_embedding[offset_qn + d_order[i]] = d_idx_embedding[t_offset_qn + d_order[i]];
+								d_idx_count[ offset_qn+ i] = d_idx_count[ t_offset_qn + i];
+							}
+
+
+							if_end = false;
+							if_interrupt = false;
+						}
+//					}
+				}
+				if(notEndingCnt == 0  ){
+					break;
+				}
+				__syncwarp();
+				int help_count = totalCnt - notEndingCnt;
+				if(tid == elected_thread){
+					divergence *= (help_count+1);
+//					divergence *= (total+1);
+				}
+
+				if(!if_end ){
+
+
+					depth = depth + 1;
+					
+
+					valid_candidate_size = Refine (s, d, cand, clen, refine);
+					
+					Sample(s,d,refine,rlen);
+
+					if_end =  Validate(s,d,v,prob);
+
+					min_size  = min (valid_candidate_size,fixednum);
+
+
+				}
+
+			}
+		}
+	}
+	// block reduce for thread score
+	 typedef cub::BlockReduce<double, threadsPerBlock> BlockReduce;
+	 __shared__ typename BlockReduce::TempStorage temp_storage;
+	 double aggregate = BlockReduce(temp_storage).Sum(thread_score, threadsPerBlock);
+	 if(threadIdx.x == 0){
+		 atomicAdd (d_score,aggregate );
+//		 atomicAdd (d_denominator,d );
+	 }
+}
