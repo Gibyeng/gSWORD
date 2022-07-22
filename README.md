@@ -27,13 +27,16 @@ $ cmake .
 $ make .
 ```
 
-Running code in GSWORD
+Running Code in GSWORD
 --------
 Running code is also done within the Root/ directory. 
 Use "./build/gsword -d DataGraph -q QueryGraph -m method -s NumberOfQueryVetice" to estimate the count of QueryGraph in DataGraph.
-if "method" is set to 1, we estimate the count by wanderJoin
-if "method" is set to 2, we estimate the count by Alley
-if "method" is set to 3, we estimate the count by PartialRefine
+| Method | code |Description|
+|------|------|------|
+|WJ|0|the WanderJoin RW Estimator|
+|AL|1|the ALLEY Estimator|
+|PR|2|the PartialRefine estimator|
+|UD|3|the User-defined Estimator|
 
 We also provide mpre advanced arguments for experienced users. 
 -t NumberOfSamples,  -c NumberOfThreads, -e MatchOrder
@@ -59,11 +62,10 @@ or
 ./gsword -d datagraph.graph -q query.graph -m 1 -s 16 -t 128000 -c 5120 -e 6
 ```
 
-Input Format for GLP
+Input Format for GSWORD
 --------
  Graph starts with 't VertexNum EdgeNum' where VertexNum is the number of vertices and EdgeNum is the number of edges. Each vertex is represented as 'v VertexID LabelId Degree' and 'e VertexId VertexId' for edges. We give an input example in the following.
 
-Graph
 ```
 t 5 6
 v 0 0 2
@@ -88,4 +90,4 @@ __pair<Vertex, double> Sample(Sample* s, int d, Vertex* refine, int rlen)__ : Gi
 
 __bool Validate(Sample* s, int d, Vertex v, double prob)__ :Given a sample s with sample iteration d, if s remains valid after adding v as the dth vertex, the function returns true and updates the sampling probability of s given prob, the probability of sampling v. Otherwise, it returns false to indict invalid sample.
 
-you can overwrite those APIs in file Root/header/kernel.cuh.
+you can overwrite those APIs in file Root/APIs.cu.

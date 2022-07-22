@@ -9111,3 +9111,5 @@ __global__  void ggecoal2 (ui root,ui* d_offset_index,ui* d_offsets,ui* d_edge_i
 //		 atomicAdd (d_denominator,d );
 	 }
 }
+
+
